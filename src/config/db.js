@@ -1,18 +1,24 @@
 import { MongoClient } from 'mongodb';
+import env from './env.js';
 
+let client;
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
-const DATABASE_NAME = process.env.DATABASE_NAME || 'SarahDB';
-
-
-export const databaseConnection = async () => {
+export const connectDB = async () => {
     try {
-        const client = new MongoClient(MONGO_URI);
+        client = new MongoClient(env.MONGO_URI);
         await client.connect();
+
+        const db = client.db(env.DATABASE_NAME);
+        await db.command({ ping: 1 });
+
         console.log('Connected to MongoDB.');
-        return client.db(DATABASE_NAME);
+        return db;
     } catch (error) {
         console.error('Database connection error:', error);
         throw new Error('Failed to connect to the database.');
     }
-}
+};
+
+export const getClient = () => client;
+
+export default connectDB;
