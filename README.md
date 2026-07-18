@@ -1,117 +1,68 @@
 # Saraha App
 
-Express + MongoDB app: users get a shareable link where anyone can send them
-an anonymous message.
+Saraha App is a lightweight anonymous messaging platform that allows users to create a personal profile link and receive messages from anyone without requiring the sender to log in. The application combines a simple public-facing experience with a private dashboard where the owner can read and manage incoming messages.
 
-## Setup
-```
-npm install
-cp .env.example .env   # set MONGODB_URI and JWT_SECRET
-npm start
-```
+## Overview
 
-Then open http://localhost:3000
+This project is designed around a simple but practical social messaging flow:
 
-## How it works
-- Register an account -> get a link like `/u/yourname`
-- Share that link anywhere
-- Anyone (no login needed) can send you an anonymous message from that page
-- Log in to `/dashboard.html` to read/delete messages in your inbox
+1. A user registers for an account.
+2. The app generates a personalized public profile URL such as `/u/yourname`.
+3. Anyone can visit that link and submit an anonymous message.
+4. The account owner can log in to a dashboard and view or delete messages.
 
-## Project structure
-```
+The project is built with Express and MongoDB and follows a clean backend architecture with routes, controllers, services, repositories, validators, and middleware.
+
+## Features
+
+- User registration and authentication
+- Secure login using JWTs stored in an HTTP-only cookie
+- Public profile routes for receiving anonymous messages
+- Anonymous message submission without authentication
+- Inbox/dashboard support for viewing and deleting messages
+- Consistent API response format through a shared response helper
+- Centralized error handling for predictable behavior
+
+## Tech Stack
+
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- bcryptjs for password hashing
+- jsonwebtoken for authentication
+- dotenv for environment configuration
+
+## Project Structure
+
+```text
 src/
-├── server.js                         # Bootstraps the app, starts the listener
-├── app.js                            # Express app configuration (middleware, routes)
-│
+├── server.js                         # Starts the HTTP server
+├── app.js                           # Express app setup and route mounting
 ├── config/
-│   ├── db.js                         # MongoDB connection
-│   └── env.js                        # Loads & validates environment variables
-│
+│   ├── db.js                        # MongoDB connection setup
+│   └── env.js                       # Environment variable loading/validation
 ├── controllers/
-│   ├── auth.controller.js            # Register / Login / Logout / Me
-│   ├── health.controller.js          # Service health check
-│   └── messages.controller.js        # Send / Inbox / Delete messages
-│
+│   ├── auth.controller.js          # Auth endpoints
+│   ├── health.controller.js       # Health check endpoint
+│   └── messages.controller.js      # Message endpoints
 ├── middlewares/
-│   ├── auth.middleware.js            # Verifies JWT cookie
-│   └── error.middleware.js           # Global error handler
-│
+│   ├── auth.middleware.js          # Auth guard for protected routes
+│   └── error.middleware.js        # Global error handler
 ├── repositories/
-│   ├── user.repository.js            # User database operations
-│   └── message.repository.js         # Message database operations
-│
+│   ├── user.repository.js          # User data access
+│   └── message.repository.js       # Message data access
 ├── routes/
 │   ├── auth.routes.js
 │   ├── health.routes.js
 │   └── message.routes.js
-│
 ├── services/
-│   ├── auth.service.js               # Authentication business logic
-│   └── messages.service.js           # Message business logic
-│
+│   ├── auth.service.js             # Authentication business logic
+│   └── messages.service.js         # Message handling logic
 ├── utils/
-│   ├── ApiResponse.js                # Standard success response helper
-│   ├── AppError.js                   # Custom operational error class
-│   └── asyncHandler.js               # Async controller wrapper
-│
+│   ├── ApiResponse.js              # Standard API response wrapper
+│   ├── AppError.js                 # Custom error class
+│   └── asyncHandler.js             # Async error handling wrapper
 └── validators/
-    ├── auth.validator.js             # Authentication validation schemas
-    └── messages.validator.js         # Message validation schemas
+    ├── auth.validator.js           # Authentication input validation
+    └── messages.validator.js       # Message input validation
 ```
-
-Request flow: `route -> controller -> service -> repository -> MongoDB`.
-
-## API response format
-
-Every endpoint returns a consistent envelope via `ApiResponse`, so the
-frontend never has to guess the shape of a response.
-
-**Success:**
-```json
-{
-  "success": true,
-  "message": "User registered successfully",
-  "data": { "id": "64f...", "username": "abdo" }
-}
-```
-
-**Error:**
-```json
-{
-  "success": false,
-  "message": "Username already taken",
-  "statusCode": 409
-}
-```
-
-## Global exception handling
-
-Controllers are wrapped in `asyncHandler`, so any thrown or rejected error —
-from a validator, service, or repository — is forwarded to `next()`
-automatically instead of needing a `try/catch` in every controller:
-
-```js
-const register = asyncHandler(async (req, res) => {
-  const user = await authService.register(req.body);
-  return res.status(201).json(new ApiResponse(201, user, "User registered successfully"));
-});
-```
-
-`middlewares/error.middleware.js` catches everything centrally at the end of
-the middleware chain. It distinguishes expected errors (`AppError` instances,
-e.g. validation failures, duplicate username, not found — returned with their
-own `statusCode` and `message`) from unexpected ones (logged server-side,
-returned to the client as a generic 500 so internals are never leaked).
-
-## Stack
-- Express (routing)
-- MongoDB + Mongoose (storage)
-- bcryptjs (password hashing)
-- jsonwebtoken + httpOnly cookie (auth)
-
-## Notes / next steps
-- Rate-limit `/api/messages/send/:username` to prevent spam/abuse
-- Add profanity/abuse filtering on message content
-- Consider adding email verification, password reset
-- For production: set a strong `JWT_SECRET`, serve behind HTTPS, set `secure: true` on the cookie, and point `MONGODB_URI` at a managed cluster (e.g. Atlas)
