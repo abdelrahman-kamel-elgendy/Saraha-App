@@ -1,23 +1,28 @@
-import { getClient } from '../config/db.js';
+import mongoose from 'mongoose';
 
 export const check = async (req, res) => {
-    const health = {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        db: 'unknown',
+    const dbStates = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting',
     };
 
-    try {
-        const client = getClient();
-        await client.db().command({ ping: 1 });
-        health.db = 'ok';
-    } catch (err) {
-        health.db = 'error';
-        health.status = 'degraded';
-    }
+    const dbState = mongoose.connection.readyState;
 
-    const statusCode = health.status === 'ok' ? 200 : 503;
+    const health = {
+        status: dbState === 1 ? 'ok' : 'degraded',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        database: {
+            status: dbStates[dbState] || 'unknown',
+            name: mongoose.connection.name || null,
+            host: mongoose.connection.host || null,
+        },
+    };
+
+    const statusCode = dbState === 1 ? 200 : 503;
+
     res.status(statusCode).json(health);
 };
 

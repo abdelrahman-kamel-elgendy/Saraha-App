@@ -1,6 +1,8 @@
-import { getClient } from "../config/db";
+import { getClient } from "../config/dbConnection";
 
-export const createUser = async (user) => await await getClient().db().collection("users").insertOne(user);
+export const getAll = async () => await getClient().db().collection("users").find();
+
+export const createUser = async (user) => await getClient().db().collection("users").insertOne(user);
 
 export const getUserById = async (id) => await getClient().db().collection("users").findOne({ _id: id });
 
